@@ -80,7 +80,11 @@ Recommendations are based on collaborative filtering.
 
 👤 Satyam Singh
 
+ B.Tech, Chemical Engineering – Jadavpur University
+
 📧 Email: singhsatyam.0912@gmail.com
+
+Linkedin: https://www.linkedin.com/in/satyam-singh-61152a334
 
 🔗 GitHub: Satyam-Singh-x
 
