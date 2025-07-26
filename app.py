@@ -1,104 +1,94 @@
 import streamlit as st
 import pickle
-import numpy as np
 import pandas as pd
 
-# Load saved files
+# Load data
+popular_df = pickle.load(open('popular.pkl', 'rb'))
 pt = pickle.load(open('pt.pkl', 'rb'))
-similarity_scores = pickle.load(open('similarity.pkl', 'rb'))
-popularity_df = pickle.load(open('popular.pkl', 'rb'))
-books=pickle.load(open('book.pkl', 'rb'))
-# Streamlit App Title
-st.markdown("""
-    <style>
-    .topbar {
-        background-color: #1f77b4;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: white;
-        margin-bottom: 20px;
-    }
-    .topbar h1 {
-        font-size: 20px;
-        margin: 0;
-        padding: 0;
-    }
-    .topbar a {
-        color: white;
-        text-decoration: none;
-        margin-left: 20px;
-        font-weight: bold;
-    }
-    .topbar a:hover {
-        text-decoration: underline;
-    }
-    </style>
+books = pickle.load(open('book.pkl', 'rb'))
+similarity = pickle.load(open('similarity.pkl', 'rb'))
 
-    <div class="topbar">
-        <h1>📚 Book Recommendation System</h1>
+# Function to recommend books
+def recommend(book_name):
+    try:
+        index = pt.index.get_loc(book_name)
+    except KeyError:
+        return None
+
+    distances = similarity[index]
+    book_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
+
+    data = []
+    for i in book_list:
+        title = pt.index[i[0]]
+        temp_df = books[books['Book-Title'] == title].drop_duplicates('Book-Title')
+        if not temp_df.empty:
+            book_author = temp_df['Book-Author'].values[0]
+            img_url = temp_df['Image-URL-M'].values[0]
+            data.append((title, book_author, img_url))
+
+    return data
+
+# Page config
+st.set_page_config(page_title="Book Recommender", layout="wide")
+
+# Header
+st.markdown("""
+    <div style="background-color: #1f77b4; padding: 10px 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+        <h1 style="color: white; margin: 0;">📚 Book Recommender</h1>
         <div>
-            <a href="#home">Home</a>
-            <a href="#recommend">Recommend</a>
-            <a href="#contact">Contact</a>
+            <span style="margin-right: 20px;"><input type="radio" name="nav" value="Home" checked> Home</span>
+            <span style="margin-right: 20px;"><input type="radio" name="nav" value="Recommend"> Recommend</span>
+            <span><input type="radio" name="nav" value="Contact"> Contact</span>
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- Home Section Anchor ---
-st.markdown('<div id="home"></div>', unsafe_allow_html=True)
+# Navigation
+selected = st.radio("Go to", ["Home", "Recommend", "Contact"], horizontal=True, label_visibility="collapsed")
 
-# --- Home Section: Top 50 Books ---
-st.markdown("### 🔝 Discover the Most Popular Books")
-st.header("🔥 Top 50 Most Popular Books")
+# Home section
+if selected == "Home":
+    st.markdown("### ⭐ Top 50 Books")
+    for i in range(0, len(popular_df), 5):
+        cols = st.columns(5)
+        for j in range(5):
+            if i + j < len(popular_df):
+                with cols[j]:
+                    book = popular_df.iloc[i + j]
+                    st.image(book['Image-URL-M'], use_container_width=True)
+                    st.caption(f"**{book['Book-Title']}**\n\nAuthor: {book['Book-Author']}")
+                    st.markdown(f"📊 Avg Rating: {book['avg_rating']:.2f} | 🗳️ Votes: {book['num_ratings']}")
 
-for i in range(0, 50, 5):
-    cols = st.columns(5)
-    for j in range(5):
-        if i + j < len(popularity_df):
-            book = popularity_df.iloc[i + j]
-            with cols[j]:
-                st.image(book['Image-URL-M'], width=100)
-                st.caption(f"**{book['Book-Title']}**")
-                st.text(f"by {book['Book-Author']}")
-                st.text(f"⭐ {round(book['avg_rating'], 2)} ({book['num_ratings']} ratings)")
-# --- Recommend Section Anchor ---
-st.markdown('<div id="recommend"></div>', unsafe_allow_html=True)
-st.markdown("### 📖 Get Book Recommendations")
+# Recommend section
+elif selected == "Recommend":
+    st.markdown("### 🔍 Recommend Books")
 
-# Dropdown to select a book
-selected_book = st.selectbox("Select a book you like:", pt.index)
+    book_list = pt.index.tolist()
+    selected_book = st.selectbox("Select a book", book_list)
 
-# Recommend function
-def recommend(book_name):
-    index = pt.index.get_loc(book_name)
-    distances = similarity_scores[index]
-    book_indices = sorted(list(enumerate(distances)), key=lambda x: x[1], reverse=True)[1:6]
+    if st.button("Recommend"):
+        recommended_books = recommend(selected_book)
+        if recommended_books:
+            st.markdown("### Top 5 Similar Books:")
+            cols = st.columns(5)
+            for i, book in enumerate(recommended_books):
+                with cols[i]:
+                    st.image(book[2], width=100)
+                    st.caption(book[0])
+        else:
+            st.error("No recommendations found.")
 
-    recommendations = []
-    for i in book_indices:
-        book_title = pt.index[i[0]]
-        book_info = books[books['Book-Title'] == book_title].drop_duplicates('Book-Title')
-
-        recommendations.append({
-            'title': book_title,
-            'author': book_info['Book-Author'].values[0],
-            'image': book_info['Image-URL-M'].values[0]
-        })
-
-    return recommendations
-
-# Show recommendations on button click
-if st.button("Recommend"):
-    recs = recommend(selected_book)
-
-    st.subheader("📚 Books You Might Like:")
-
-    cols = st.columns(5)
-    for i, rec in enumerate(recs):
-        with cols[i]:
-            st.image(rec['image'], width=100)
-            st.caption(f"**{rec['title']}**")
-            st.text(f"by {rec['author']}")
+# Contact section
+elif selected == "Contact":
+    st.markdown(
+        """
+        <div style="background-color: black; padding: 20px; border-radius: 10px;">
+            <h2 style="color: white;">📞 Contact</h2>
+            <p style="color: white;">👤 Name: Satyam Singh</p>
+            <p style="color: white;">📧 Email: singhsatyam.0912@gmail.com</p>
+            <p style="color: white;">🔗 GitHub: <a href="https://github.com/Satyam-Singh-x/Book-recommender-system.git" style="color: #1f77b4;" target="_blank">github.com/Satyam-Singh-x/Book-recommender-system</a></p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
