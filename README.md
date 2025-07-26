@@ -4,6 +4,8 @@ A personalized Book Recommendation Web App built with Streamlit, offering recomm
 
 Live Demo Link: https://book-recommender-system-bysatyam.streamlit.app/#contact
 
+Link to the dataset used: https://www.kaggle.com/datasets/arashnic/book-recommendation-dataset?select=Users.csv
+
 🚀 Features
 
 🎯 Top 50 Popular Books displayed with cover images
@@ -22,17 +24,16 @@ Live Demo Link: https://book-recommender-system-bysatyam.streamlit.app/#contact
 
 ├── app.py                 # Main Streamlit app
 
-├── books.csv              # Books dataset
+├──book-recommender-system.ipynb  #Main data preprocessing, EDA, and logic building files 
 
-├── ratings.csv            # Ratings dataset
+├── book.pkl            # Books dataset combined with Ratings and users datasets(all work done in .ipynb file)
 
-├── users.csv              # Users dataset
 
 ├── similarity.pkl         # Pickled similarity matrix
 
 ├── pt.pkl                 # Pivot table (user-item matrix)
 
-├── popular_df.pkl         # Pickled top 50 books dataframe
+├── popular.pkl         # Pickled top 50 books dataframe
 
 ├── requirements.txt       # Required Python packages
 
